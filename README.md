@@ -4,10 +4,10 @@
 
 # tidyenv
 
-[![PyPI](https://img.shields.io/pypi/v/tidyenv)](https://pypi.org/project/tidyenv/)
-[![Python](https://img.shields.io/pypi/pyversions/tidyenv)](https://pypi.org/project/tidyenv/)
+[![PyPI](https://img.shields.io/pypi/v/tidyenv?cacheSeconds=3600)](https://pypi.org/project/tidyenv/)
+[![Python](https://img.shields.io/pypi/pyversions/tidyenv?cacheSeconds=3600)](https://pypi.org/project/tidyenv/)
 [![CI](https://github.com/LenaBarretta/tidyenv/actions/workflows/ci.yml/badge.svg)](https://github.com/LenaBarretta/tidyenv/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/pypi/l/tidyenv?cacheSeconds=3600)](#license)
 
 **Typed environment variables with friendly errors.** Built-in `.env` support. Zero dependencies.
 
