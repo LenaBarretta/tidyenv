@@ -7,12 +7,12 @@ name = "tidyenv"
 dynamic = ["version"]
 description = "Typed environment variables with friendly errors and built-in .env support."
 readme = "README.md"
-license = "MIT"
-license-files = ["LICENSE"]
+license = "MIT AND BSD-3-Clause"
+license-files = ["LICENSE", "LICENSES/*"]
 authors = [{ name = "Elena Raikova", email = "lenabarretta@gmail.com" }]
 requires-python = ">=3.9"
 dependencies = []
-keywords = ["environment", "env", "config", "settings", "12-factor"]
+keywords = ["environment", "env", "config", "settings", "12-factor", "dotenv"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -33,7 +33,14 @@ Homepage = "https://github.com/LenaBarretta/tidyenv"
 Issues = "https://github.com/LenaBarretta/tidyenv/issues"
 
 [dependency-groups]
-dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.6", "mypy>=1.11"]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    # tests/test_compat.py checks tidyenv against it; 1.2.4 needs Python 3.10+.
+    "python-dotenv>=1.2.4; python_version >= '3.10'",
+]
 
 [tool.hatch.build.targets.sdist]
 exclude = ["docs"]
@@ -55,3 +62,7 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 [tool.mypy]
 strict = true
 files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["dotenv"]  # not installed on Python 3.9
+ignore_missing_imports = true

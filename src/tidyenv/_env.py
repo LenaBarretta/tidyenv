@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, TypeVar, overload
 
-from tidyenv._dotenv import parse_dotenv
+from tidyenv._dotenv import parse_pairs, resolve_variables
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -69,13 +69,20 @@ class Env:
         return os.environ if self._environ is None else self._environ
 
     def read_dotenv(
-        self, path: _str | os.PathLike[_str] = ".env", *, required: _bool = False
+        self,
+        path: _str | os.PathLike[_str] = ".env",
+        *,
+        required: _bool = False,
+        interpolate: _bool = True,
     ) -> Env:
         """Use values from a ``.env`` file for variables the environment doesn't set.
 
-        Real environment variables always win. A missing file is skipped unless
-        ``required=True``. When several files are read, later ones override
-        earlier ones. Nothing is written to ``os.environ``.
+        The rules are python-dotenv's ``load_dotenv``: real environment variables
+        always win, and when several files are read the first one to set a
+        variable wins. ``${VAR}`` and ``${VAR:-default}`` are expanded unless
+        ``interpolate=False``. Unlike ``load_dotenv``, nothing is written to
+        ``os.environ`` and a line that can't be parsed is an error.
+        A missing file is skipped unless ``required=True``.
         Returns ``self``, so ``env = Env().read_dotenv()`` works.
         """
         file = Path(path)
@@ -93,9 +100,18 @@ class Env:
         except OSError as exc:
             raise EnvError([Problem(_str(file), exc.strerror or _str(exc))]) from None
         try:
-            self._dotenv.update(parse_dotenv(text))
+            pairs = parse_pairs(text)
         except ValueError as exc:
             raise EnvError([Problem(_str(file), _str(exc))]) from None
+        if interpolate:
+            # References see earlier files too, and the environment beats both.
+            outer = {**self._dotenv, **self.environ}
+            values = resolve_variables(pairs, outer, outer_wins=True)
+        else:
+            values = dict(pairs)
+        for key, value in values.items():
+            if value is not None:
+                self._dotenv.setdefault(key, value)
         return self
 
     @contextmanager

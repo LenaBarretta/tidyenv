@@ -40,7 +40,7 @@ tidyenv.EnvError: 1 environment problem:
 | List of numbers | the same, plus `int()` on every item | `env.list("PORTS", of=int)` |
 | One of several values | `if mode not in ("dev", "prod"): raise ...` | `env.choice("MODE", ["dev", "prod"])` |
 | Secrets in errors | the value ends up in your logs | `secret=True` shows `***` |
-| `.env` file | `pip install python-dotenv` + `load_dotenv()` | `env.read_dotenv()`, nothing to install |
+| `.env` file | `pip install python-dotenv` + `load_dotenv()` | the same `load_dotenv()`, built in |
 | Types for mypy / IDE | `str \| None`, cast it yourself | `env.int` returns `int` |
 | Several broken variables | crash, fix, redeploy, crash on the next one | `env.collect()` lists them all at once |
 
@@ -73,20 +73,47 @@ is `int | <type of default>`.
 
 ### `.env` files
 
-No need for `python-dotenv`:
+**Coming from python-dotenv?** Change the import, nothing else:
 
 ```python
-env.read_dotenv()  # reads ./.env if it exists
+from tidyenv import load_dotenv  # was: from dotenv import load_dotenv
+
+load_dotenv()
+```
+
+`load_dotenv`, `dotenv_values` and `find_dotenv` take the same arguments and give the
+same results as python-dotenv 1.2's:
+
+- the same file syntax: `export`, comments, quotes, values spanning several lines,
+  `${VAR}` and `${VAR:-default}`;
+- `.env` is looked up starting next to the calling file, then in its parents;
+- values go into `os.environ`, and variables that are already set are kept unless
+  `override=True`, so the first file you load wins;
+- `PYTHON_DOTENV_DISABLED=1` turns loading off.
+
+The test suite checks this against python-dotenv itself on thousands of generated
+files. Not included: `set_key`, `unset_key`, `get_key` and the `dotenv` command.
+
+Then read the values with types. `env` reads `os.environ`, so it sees them:
+
+```python
+from tidyenv import env, load_dotenv
+
+load_dotenv()
+PORT = env.int("PORT", default=8000)
+```
+
+**Without touching `os.environ`.** `env.read_dotenv()` follows the same rules but keeps
+the values inside `env`, and a line it can't parse is an error naming the file and line
+(python-dotenv only logs a warning):
+
+```python
+env.read_dotenv()  # ./.env in the current directory, if it exists
 env.read_dotenv("config/dev.env", required=True)
 ```
 
-Real environment variables always win over the file, and nothing is written to
-`os.environ`. When you read several files, later ones override earlier ones.
-Supported syntax: `KEY=value`, `export KEY=value`, `# comments`,
-`'single quotes'` (literal) and `"double quotes"` (with `\n`, `\t`, `\"` escapes).
-Each value must fit on one line; for a multi-line value such as a PEM key, write
-`\n` inside double quotes.
-Need just the parser? `tidyenv.parse_dotenv(text)` returns a `dict`.
+Need just the parser? `tidyenv.parse_dotenv(text)` returns a `dict` (without `${VAR}`
+expansion).
 
 ### All errors at once (optional)
 
@@ -128,4 +155,7 @@ can print them your own way.
 
 ## License
 
-MIT
+MIT. The `.env` support is adapted from
+[python-dotenv](https://github.com/theskumar/python-dotenv) (BSD-3-Clause, see
+[LICENSES/python-dotenv.txt](LICENSES/python-dotenv.txt)); thanks to its authors.
+tidyenv is not affiliated with or endorsed by the python-dotenv project.
