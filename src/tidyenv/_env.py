@@ -134,12 +134,26 @@ class Env:
     # Each reader returns its type, or the type of `default` when one is given.
 
     @overload
-    def str(self, name: _str, *, secret: _bool = ...) -> _str: ...
+    def str(self, name: _str, *, secret: _bool = ..., allow_empty: _bool = ...) -> _str: ...
     @overload
-    def str(self, name: _str, default: T, *, secret: _bool = ...) -> _str | T: ...
-    def str(self, name: _str, default: Any = _MISSING, *, secret: _bool = False) -> Any:
-        """Read a string. Values are stripped; an empty value counts as missing."""
-        return self._read(name, default, lambda raw: raw, secret=secret)
+    def str(
+        self, name: _str, default: T, *, secret: _bool = ..., allow_empty: _bool = ...
+    ) -> _str | T: ...
+    def str(
+        self,
+        name: _str,
+        default: Any = _MISSING,
+        *,
+        secret: _bool = False,
+        allow_empty: _bool = False,
+    ) -> Any:
+        """Read a string. Values are stripped.
+
+        An empty value counts as missing, unless ``allow_empty=True``: then a
+        variable that is set but empty gives ``""`` (one that isn't set at all
+        is still missing).
+        """
+        return self._read(name, default, lambda raw: raw, secret=secret, allow_empty=allow_empty)
 
     @overload
     def int(self, name: _str, *, secret: _bool = ...) -> _int: ...
@@ -220,12 +234,19 @@ class Env:
     @overload
     def choice(self, name: _str, choices: Sequence[_str], default: T) -> _str | T: ...
     def choice(self, name: _str, choices: Sequence[_str], default: Any = _MISSING) -> Any:
-        """Read a string that must be one of ``choices``."""
+        """Read a string that must be one of ``choices``, in any case.
+
+        Returns the choice as written in ``choices``, so ``PROD`` gives ``"prod"``.
+        Choices that differ only in case (``"a"``, ``"A"``) need an exact match.
+        """
 
         def parse(raw: _str) -> _str:
-            if raw not in choices:
+            if raw in choices:
+                return raw
+            matches = [choice for choice in choices if choice.casefold() == raw.casefold()]
+            if len(matches) != 1:
                 raise ValueError(f"expected one of {', '.join(choices)}")
-            return raw
+            return matches[0]
 
         return self._read(name, default, parse)
 
@@ -257,15 +278,24 @@ class Env:
         parse: Callable[[_str], Any],
         *,
         secret: _bool = False,
+        allow_empty: _bool | None = None,
     ) -> Any:
+        """``allow_empty`` is None for readers that have no such option."""
         key = self.prefix + name
         raw = self.environ.get(key)
         if raw is None:
             raw = self._dotenv.get(key)
+        if allow_empty and raw is not None and raw.strip() == "":
+            return ""
         if raw is None or raw.strip() == "":
             if default is not _MISSING:
                 return default
-            return self._fail(key, "is not set")
+            if raw is None:
+                return self._fail(key, "is not set")
+            hint = (
+                "" if allow_empty is None else " (pass allow_empty=True if an empty value is valid)"
+            )
+            return self._fail(key, "is empty" + hint)
         try:
             return parse(raw.strip())
         except (ValueError, TypeError) as exc:

@@ -58,18 +58,36 @@ Python 3.9+.
 
 | Reader | Example value | Returns |
 | --- | --- | --- |
-| `env.str(name)` | `hello` | `str` (stripped) |
+| `env.str(name, allow_empty=False)` | `hello` | `str` (stripped) |
 | `env.int(name)` | `8000`, `1_000` | `int` |
 | `env.float(name)` | `0.25` | `float` (`nan` and `inf` are rejected) |
 | `env.bool(name)` | `true/false`, `yes/no`, `on/off`, `1/0`, any case | `bool` |
 | `env.list(name, sep=",", of=str)` | `a, b, c` | `list` (use `of=int` to convert items; `int`, `float` and `bool` follow the rules above) |
-| `env.choice(name, choices)` | `prod` | `str` that must be in `choices` |
+| `env.choice(name, choices)` | `prod`, `PROD` | the matching entry of `choices`, any case |
 | `env.path(name, must_exist=False)` | `~/data` | `pathlib.Path` with `~` expanded |
 | `env.json(name)` | `{"a": 1}` | parsed JSON |
 
 Every reader takes an optional `default`. Without one, a missing or empty variable is
 an error. With one, the default is returned instead, and type checkers know the result
 is `int | <type of default>`.
+
+An empty value like `DB_URL=` usually means someone forgot to fill it in, so it counts
+as missing: you get the default, or the error `DB_URL: is empty`. This is how the shell's
+`${DB_URL:-default}` treats it too. When empty really is a valid value, such as a local
+database with no password, say so: `env.str("DB_PASSWORD", allow_empty=True)` returns `""`.
+
+### Switching from `os.environ`
+
+tidyenv is stricter than hand-written parsing, on purpose. When you switch, check the
+values your environments actually set:
+
+- **Bad values stop the app.** A typo in a number, a boolean or a choice is an error at
+  startup instead of a silent fallback. `env.choice` ignores case, so `PROD` is fine.
+- **Booleans accept every common spelling.** `true`, `True`, `yes`, `on` and `1` are
+  all `True`. Code that only checked `== "TRUE"` treated the others as `False`.
+- **Empty means missing.** `X=` gives the default (or an `is empty` error), not `""`,
+  unless you pass `allow_empty=True`. If your old code used `os.getenv("X", "")` and
+  relied on getting `""`, use `allow_empty=True` for that variable.
 
 ### `.env` files
 

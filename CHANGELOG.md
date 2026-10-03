@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 (2026-10-02)
+
+- `env.choice` ignores case and returns the entry as written in `choices`, so `PROD`
+  gives `"prod"`. Choices that differ only in case still need an exact match.
+- New: `env.str(name, allow_empty=True)` returns `""` for a variable that is set but
+  empty, for the cases where empty is a valid value.
+- A variable that is set but empty now fails with `is empty` instead of `is not set`;
+  for `env.str` the message suggests `allow_empty=True`.
+- README: a "Switching from `os.environ`" section listing what behaves differently.
+
 ## 0.2.0 (2026-10-02)
 
 Switching from python-dotenv is now a one-line import change.

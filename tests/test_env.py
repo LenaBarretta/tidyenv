@@ -53,6 +53,26 @@ def test_defaults_apply_when_missing_or_empty() -> None:
     assert env.bool("EMPTY", default=True) is True
 
 
+def test_str_allow_empty(tmp_path: Path) -> None:
+    (tmp_path / ".env").write_text("FROM_FILE=\n")
+    env = make(EMPTY="", BLANK="  ", SET=" x ").read_dotenv(tmp_path / ".env")
+    assert env.str("EMPTY", allow_empty=True) == ""
+    assert env.str("BLANK", allow_empty=True) == ""
+    assert env.str("FROM_FILE", allow_empty=True) == ""
+    assert env.str("SET", allow_empty=True) == "x"
+    assert env.str("NOPE", default=None, allow_empty=True) is None
+    with pytest.raises(EnvError, match="NOPE: is not set"):
+        env.str("NOPE", allow_empty=True)
+    with pytest.raises(EnvError) as info:
+        env.str("EMPTY")  # without allow_empty, empty still counts as missing
+    assert info.value.problems == [
+        Problem("EMPTY", "is empty (pass allow_empty=True if an empty value is valid)")
+    ]
+    with pytest.raises(EnvError) as info:
+        env.int("EMPTY")
+    assert info.value.problems == [Problem("EMPTY", "is empty")]
+
+
 def test_missing_raises_immediately() -> None:
     with pytest.raises(EnvError) as info:
         make().str("TOKEN")
@@ -78,6 +98,19 @@ def test_invalid_values_explain_themselves(method: str, raw: str, message: str) 
 def test_choice_lists_options() -> None:
     with pytest.raises(EnvError, match="expected one of dev, prod"):
         make(C="qa").choice("C", ["dev", "prod"])
+
+
+@pytest.mark.parametrize("raw", ["prod", "PROD", "Prod"])
+def test_choice_ignores_case_and_returns_the_listed_spelling(raw: str) -> None:
+    assert make(C=raw).choice("C", ["dev", "prod"]) == "prod"
+
+
+def test_choice_needs_an_exact_match_when_choices_differ_only_in_case() -> None:
+    env = make(EXACT="A", OTHER="b")
+    assert env.choice("EXACT", ["a", "A", "b"]) == "A"
+    assert env.choice("OTHER", ["a", "A", "B"]) == "B"
+    with pytest.raises(EnvError, match="expected one of ß, SS"):
+        make(C="ss").choice("C", ["ß", "SS"])  # matches both when case is ignored
 
 
 def test_path_must_exist(tmp_path: Path) -> None:
