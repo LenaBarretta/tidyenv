@@ -14,7 +14,7 @@ __all__ = [
     "load_dotenv",
     "parse_dotenv",
 ]
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 # Show errors as tidyenv.EnvError, not tidyenv._env.EnvError.
 for _cls in (Env, EnvError, Problem):

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 (2026-10-03)
+
+- Package metadata: author is now listed as Lena Barretta.
+- README: badges that refresh within an hour, and a license badge read from PyPI.
+
 ## 0.3.0 (2026-10-02)
 
 - `env.choice` ignores case and returns the entry as written in `choices`, so `PROD`

@@ -9,7 +9,7 @@ description = "Typed environment variables with friendly errors and built-in .en
 readme = "README.md"
 license = "MIT AND BSD-3-Clause"
 license-files = ["LICENSE", "LICENSES/*"]
-authors = [{ name = "Elena Raikova", email = "lenabarretta@gmail.com" }]
+authors = [{ name = "Lena Barretta" }]
 requires-python = ">=3.9"
 dependencies = []
 keywords = ["environment", "env", "config", "settings", "12-factor", "dotenv"]
